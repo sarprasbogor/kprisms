@@ -1,0 +1,464 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN_KEANGGOTAAN
+  BENDAHARA
+  PENGURUS
+  ANGGOTA
+}
+
+enum StatusKeanggotaan {
+  CALON
+  AKTIF
+  NONAKTIF
+  MENINGGAL
+  DIBERHENTIKAN
+}
+
+enum StatusKepegawaian {
+  PNS
+  PPPK
+  KONTRAK
+  HONORER
+}
+
+enum JenisKelamin {
+  LAKI_LAKI
+  PEREMPUAN
+}
+
+enum StatusPernikahan {
+  BELUM_MENIKAH
+  MENIKAH
+  CERAI_HIDUP
+  CERAI_MATI
+}
+
+enum StatusPinjaman {
+  DIAJUKAN
+  DIVERIFIKASI
+  DISETUJUI
+  CAIR
+  LUNAS
+  BERMASALAH
+}
+
+enum KondisiAset {
+  BAIK
+  RUSAK
+  HILANG
+}
+
+enum StatusAset {
+  AKTIF
+  DIHAPUSKAN
+}
+
+enum TipeAkun {
+  ASET
+  KEWAJIBAN
+  EKUITAS
+  PENDAPATAN
+  BEBAN
+}
+
+model ShuAnggota {
+  id                String   @id @default(cuid())
+  tahun             Int
+  anggotaId         String
+  anggota           Anggota  @relation(fields: [anggotaId], references: [id])
+  simpananWajib     Float    @default(0)
+  simpananPokok     Float     @default(0)
+  totalSimpanan     Float    @default(0)
+  shuSimpanan       Float    @default(0)
+  angsuranPinjaman  Float?
+  shuPinjaman       Float    @default(0)
+  shuTotal          Float    @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([anggotaId, tahun])
+  @@map("shu_anggota")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  name          String
+  role          Role     @default(ANGGOTA)
+  anggotaId     String?   @unique
+  anggota       Anggota?  @relation(fields: [anggotaId], references: [id])
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Anggota {
+  id                    String              @id @default(cuid())
+  nik                   String              @unique
+  nikop                 String              @unique
+  namaLengkap           String
+  tempatLahir           String
+  tanggalLahir          DateTime
+  jenisKelamin          JenisKelamin
+  statusPernikahan      StatusPernikahan?
+  alamatJalan           String
+  rtRw                  String?
+  kelurahan             String
+  kecamatan             String
+  kota                  String
+  provinsi              String
+  kodePos               String?
+  nomorHp               String              @unique
+  email                 String?
+  unitKerja             String
+  jabatan               String?
+  statusKepegawaian     StatusKepegawaian
+
+  // PNS
+  nip                   String?             @unique
+  golonganRuang         String?
+  masaKerjaTahun        Int?
+  tmtPns                DateTime?
+  tmtJabatan            DateTime?
+
+  // Non-PNS
+  nomorIndukNonPns      String?             @unique
+  jenisNonPns           String?
+  tanggalMulaiKontrak   DateTime?
+  tanggalBerakhirKontrak DateTime?
+  penghasilanTetap      Float?
+
+  // Status
+  tanggalDaftar         DateTime            @default(now())
+  tanggalAktif          DateTime?
+  tanggalNonaktif       DateTime?
+  statusKeanggotaan     StatusKeanggotaan    @default(CALON)
+  alasanNonaktif        String?
+  tanggalPensiun        DateTime?
+  tanggalMeninggal      DateTime?
+
+  // Ahli waris
+  namaAhliWaris         String?
+  hubunganAhliWaris     String?
+  hpAhliWaris           String?
+
+  // Rekening
+  nomorRekening         String?
+  namaBank              String?
+
+  // File
+  fotoUrl               String?
+  fotoKtpUrl            String?
+  suratKeteranganUrl    String?
+
+  // Relations
+  user                  User?
+  simpananPokok         SimpananPokok[]
+  simpananWajib         SimpananWajib[]
+  simpananSukarela      SimpananSukarela[]
+  pinjaman              Pinjaman[]
+  shuAnggota            ShuAnggota[]
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("anggota")
+}
+
+model SimpananPokok {
+  id            String   @id @default(cuid())
+  anggotaId     String
+  anggota       Anggota  @relation(fields: [anggotaId], references: [id])
+  jumlah        Float
+  statusLunas   Boolean  @default(false)
+  cicilanKe     Int?
+  totalCicilan  Int?
+  tanggalBayar  DateTime @default(now())
+  keterangan    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("simpanan_pokok")
+}
+
+model SimpananWajib {
+  id              String   @id @default(cuid())
+  anggotaId       String
+  anggota         Anggota  @relation(fields: [anggotaId], references: [id])
+  bulan           Int
+  tahun           Int
+  jumlah          Float    @default(100000)
+  tanggalBayar    DateTime @default(now())
+  statusLunas     Boolean  @default(false)
+  denda           Float    @default(0)
+  keterangan      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([anggotaId, bulan, tahun])
+  @@map("simpanan_wajib")
+}
+
+model SimpananSukarela {
+  id            String            @id @default(cuid())
+  anggotaId     String
+  anggota       Anggota           @relation(fields: [anggotaId], references: [id])
+  jenis         String            @default("SETORAN")
+  jumlah        Float
+  saldoSetelah  Float
+  tanggal       DateTime          @default(now())
+  keterangan    String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@map("simpanan_sukarela")
+}
+
+model JenisPinjaman {
+  id            String     @id @default(cuid())
+  nama          String     @unique
+  deskripsi     String?
+  bungaFlat     Float      @default(0)
+  bungaEfektif  Float      @default(0)
+  maksimal      Float?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  pinjaman      Pinjaman[]
+
+  @@map("jenis_pinjaman")
+}
+
+model Pinjaman {
+  id              String          @id @default(cuid())
+  anggotaId       String
+  anggota         Anggota         @relation(fields: [anggotaId], references: [id])
+  jenisPinjamanId String
+  jenisPinjaman   JenisPinjaman   @relation(fields: [jenisPinjamanId], references: [id])
+  jumlah          Float
+  jangkaWaktu     Int
+  bunga           Float           @default(0)
+  angsuranPerBulan Float
+  tujuan          String?
+  dokumenPendukung String?
+  status          StatusPinjaman  @default(DIAJUKAN)
+  catatan         String?
+  tanggalPengajuan DateTime       @default(now())
+  tanggalCair     DateTime?
+  buktiTransfer   String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  angsuran        Angsuran[]
+
+  @@map("pinjaman")
+}
+
+model Angsuran {
+  id              String    @id @default(cuid())
+  pinjamanId      String
+  pinjaman        Pinjaman  @relation(fields: [pinjamanId], references: [id])
+  angsuranKe      Int
+  tanggalJatuhTempo DateTime
+  tanggalBayar    DateTime?
+  jumlahPokok     Float
+  jumlahBunga     Float
+  denda           Float     @default(0)
+  statusLunas     Boolean   @default(false)
+  keterangan      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("angsuran")
+}
+
+model AkunAkuntansi {
+  id            String          @id @default(cuid())
+  kodeAkun      String          @unique
+  namaAkun      String
+  tipeAkun      TipeAkun
+  saldoNormal   String
+  deskripsi     String?
+  indukId       String?
+  induk         AkunAkuntansi?  @relation("AkunHierarki", fields: [indukId], references: [id])
+  anak          AkunAkuntansi[] @relation("AkunHierarki")
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  jurnalDetail  JurnalDetail[]
+
+  @@map("akun_akuntansi")
+}
+
+model Jurnal {
+  id            String         @id @default(cuid())
+  tanggal       DateTime       @default(now())
+  noJurnal      String         @unique
+  keterangan    String?
+  sumber        String?
+  isPosting     Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  detail        JurnalDetail[]
+
+  @@map("jurnal")
+}
+
+model JurnalDetail {
+  id            String        @id @default(cuid())
+  jurnalId      String
+  jurnal        Jurnal        @relation(fields: [jurnalId], references: [id])
+  akunId        String
+  akun          AkunAkuntansi @relation(fields: [akunId], references: [id])
+  debit         Float         @default(0)
+  kredit        Float         @default(0)
+  keterangan    String?
+
+  @@map("jurnal_detail")
+}
+
+model Pengurus {
+  id            String   @id @default(cuid())
+  nama          String
+  jabatan       String
+  foto          String?
+  kontak        String?
+  tugasPokok    String?
+  periodeMulai  DateTime
+  periodeSelesai DateTime
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("pengurus")
+}
+
+model Pengawas {
+  id            String   @id @default(cuid())
+  nama          String
+  jabatan       String
+  foto          String?
+  kontak        String?
+  tugasPokok    String?
+  periodeMulai  DateTime
+  periodeSelesai DateTime
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("pengawas")
+}
+
+model Karyawan {
+  id            String   @id @default(cuid())
+  nama          String
+  jabatan       String
+  unitKerja     String?
+  nik           String?  @unique
+  noTelepon     String?
+  alamat        String?
+  gajiPokok     Float?
+  tanggalMasuk  DateTime @default(now())
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("karyawan")
+}
+
+model Rapat {
+  id            String   @id @default(cuid())
+  jenis         String
+  judul         String
+  tanggal       DateTime
+  agenda        String?
+  notulen       String?
+  lokasi        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("rapat")
+}
+
+model Aturan {
+  id            String   @id @default(cuid())
+  jenis         String
+  judul         String
+  isi           String
+  fileUrl       String?
+  tanggalBerlaku DateTime
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("aturan")
+}
+
+model Legalitas {
+  id            String   @id @default(cuid())
+  jenis         String
+  nomor         String
+  tanggalTerbit DateTime
+  masaBerlaku   DateTime?
+  fileUrl       String?
+  keterangan    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("legalitas")
+}
+
+model Aset {
+  id              String       @id @default(cuid())
+  namaAset        String
+  kategori        String
+  tanggalPerolehan DateTime
+  nilaiPerolehan  Float
+  umurEkonomis    Int
+  nilaiPenyusutan Float        @default(0)
+  nilaiBuku       Float
+  lokasi          String?
+  foto            String?
+  kondisi         KondisiAset  @default(BAIK)
+  status          StatusAset   @default(AKTIF)
+  keterangan      String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("aset")
+}
+
+model RAT {
+  id              String   @id @default(cuid())
+  tahun           Int      @unique
+  tanggal         DateTime
+  agenda          String?
+  notulen         String?
+  daftarHadir     String?
+  laporanPj       String?
+  sisaHasilUsaha  Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("rat")
+}
+
+model Notifikasi {
+  id        String   @id @default(cuid())
+  judul     String
+  isi       String
+  tipe      String   @default("INFO")
+  tanggal   DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@map("notifikasi")
+}

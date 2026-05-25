@@ -1,0 +1,14 @@
+node_modules/
+.next/
+dist/
+tampung/
+cloudflare/frontend/dist/
+cloudflare/worker/.wrangler/
+cloudflare/data/seed.sql
+cloudflare/frontend/.env
+*.db
+.env
+.env.local
+.DS_Store
+*.log
+Thumbs.db

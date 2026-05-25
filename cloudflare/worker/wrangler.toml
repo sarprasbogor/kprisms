@@ -1,0 +1,12 @@
+name = "kpri-sms-api"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kpri-sms-db"
+database_id = "4ea25197-84b1-4e40-a653-1a967a6b5956"
+
+[vars]
+JWT_SECRET = "kpri-sms-secret-2026-sarpras"

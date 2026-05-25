@@ -1,0 +1,42 @@
+name: Deploy KPRI SMS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy Worker + Frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Deploy Worker API
+        working-directory: cloudflare/worker
+        run: npx wrangler deploy src/index.ts --var JWT_SECRET:"${{ secrets.JWT_SECRET }}"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+
+      - name: Build Frontend
+        working-directory: cloudflare/frontend
+        run: |
+          npm ci
+          VITE_API_URL="https://kpri-sms-api.sarpras.workers.dev" npm run build
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+
+      - name: Deploy Frontend to Pages
+        working-directory: cloudflare/frontend
+        run: npx wrangler pages deploy dist --project-name kpri-sms-frontend --branch main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
