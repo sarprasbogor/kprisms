@@ -9,4 +9,4 @@ database_name = "kpri-sms-db"
 database_id = "4ea25197-84b1-4e40-a653-1a967a6b5956"
 
 [vars]
-JWT_SECRET = "kpri-sms-secret-2026-sarpras"
+# JWT_SECRET set via CI (--var flag)
